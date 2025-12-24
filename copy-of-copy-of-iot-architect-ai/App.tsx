@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react';
-import { Platform, GeneratedResponse, FileNode, Language } from './types';
+import { Platform, GeneratedResponse, FileNode, Language, AIProvider } from './types';
 import { generateEmbeddedProject } from './services/geminiService';
+import { generateEmbeddedProjectWithDoubao } from './services/doubaoService';
 import LogicFlowView from './components/LogicFlowView';
 import FileExplorer from './components/FileExplorer';
 import HardwareView from './components/HardwareView';
@@ -30,6 +31,7 @@ const translations = {
         title: "AI 硬件架构师",
         subtitle: "技术可行性评估 & 嵌入式方案生成",
         step1: "硬件平台选择",
+        step1b: "AI 模型选择",
         step2: "产品需求定义",
         promptPlaceholder: "请描述你的产品功能需求。\nAI 架构师将为你推荐传感器、电机并生成接线图和代码。\n\n例如：\n我想做一个桌面宠物机器人，要有视觉识别、语音互动和扬声器。看到人脸时它应该用舵机移动。",
         generateBtn: "生成工程方案",
@@ -55,12 +57,15 @@ const translations = {
         error: "生成失败 (网络或模型超时)，请重试。",
         retry: "重试",
         espDesc: "Wi-Fi / 蓝牙 / AI",
-        stmDesc: "高性能 / 强实时性"
+        stmDesc: "高性能 / 强实时性",
+        geminiDesc: "Google Gemini",
+        doubaoDesc: "字节豆包"
     },
     en: {
         title: "IoT Architect AI",
         subtitle: "Technical Feasibility & Implementation",
         step1: "Hardware Family",
+        step1b: "AI Model",
         step2: "Product Requirements",
         promptPlaceholder: "Describe your product functionality here.\nThe AI Architect will recommend sensors, motors, wiring, and code.\n\nExample:\nI want to build a Desktop Pet Robot with Vision, Voice Recognition, and a Speaker. It should move using servos when it sees a face.",
         generateBtn: "Generate Solution",
@@ -86,12 +91,15 @@ const translations = {
         error: "Generation Failed (Network/Timeout). Please Retry.",
         retry: "Retry",
         espDesc: "Wi-Fi / BLE / AI",
-        stmDesc: "High Perf / Real-time"
+        stmDesc: "High Perf / Real-time",
+        geminiDesc: "Google Gemini",
+        doubaoDesc: "ByteDance Doubao"
     }
 };
 
 const App: React.FC = () => {
   const [platform, setPlatform] = useState<Platform>(Platform.ESP32);
+  const [aiProvider, setAiProvider] = useState<AIProvider>(AIProvider.GEMINI);
   const [prompt, setPrompt] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [result, setResult] = useState<GeneratedResponse | null>(null);
@@ -108,7 +116,12 @@ const App: React.FC = () => {
     setResult(null);
     setError(null);
     try {
-      const data = await generateEmbeddedProject(platform, prompt, language);
+      let data: GeneratedResponse;
+      if (aiProvider === AIProvider.DOUBAO) {
+        data = await generateEmbeddedProjectWithDoubao(platform, prompt, language);
+      } else {
+        data = await generateEmbeddedProject(platform, prompt, language);
+      }
       setResult(data);
       if (data.isPossible && data.project) {
         // Default to hardware view first for beginners
@@ -321,6 +334,44 @@ const App: React.FC = () => {
                   <div className="text-left">
                     <div className="font-bold text-sm">STM32</div>
                     <div className="text-[10px] opacity-60">{t.stmDesc}</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* Step 1b: AI Model Selection */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-indigo-400 font-bold uppercase text-xs tracking-wider">
+                <span className="bg-indigo-500/10 px-2 py-1 rounded">Step 01b</span>
+                {t.step1b}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setAiProvider(AIProvider.GEMINI)}
+                  className={`p-3 rounded-lg border transition-all flex items-center gap-3 ${
+                    aiProvider === AIProvider.GEMINI
+                      ? 'border-indigo-500 bg-indigo-500/10 text-white'
+                      : 'border-slate-700 hover:border-slate-600 text-slate-400'
+                  }`}
+                >
+                  <BrainIcon className="w-5 h-5" />
+                  <div className="text-left">
+                    <div className="font-bold text-sm">Gemini</div>
+                    <div className="text-[10px] opacity-60">{t.geminiDesc}</div>
+                  </div>
+                </button>
+                <button
+                  onClick={() => setAiProvider(AIProvider.DOUBAO)}
+                  className={`p-3 rounded-lg border transition-all flex items-center gap-3 ${
+                    aiProvider === AIProvider.DOUBAO
+                      ? 'border-indigo-500 bg-indigo-500/10 text-white'
+                      : 'border-slate-700 hover:border-slate-600 text-slate-400'
+                  }`}
+                >
+                  <BrainIcon className="w-5 h-5" />
+                  <div className="text-left">
+                    <div className="font-bold text-sm">Doubao</div>
+                    <div className="text-[10px] opacity-60">{t.doubaoDesc}</div>
                   </div>
                 </button>
               </div>
@@ -544,7 +595,7 @@ const App: React.FC = () => {
                         )}
 
                         {/* Floating AI Chat Assistant */}
-                        <AIChat project={result.project} language={language} />
+                        <AIChat project={result.project} language={language} aiProvider={aiProvider} />
                     </>
                   )
                 )}
