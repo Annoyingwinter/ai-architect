@@ -4,6 +4,11 @@ export enum Platform {
   STM32 = 'STM32',
 }
 
+export enum AIProvider {
+  GEMINI = 'GEMINI',
+  DOUBAO = 'DOUBAO',
+}
+
 export type Language = 'cn' | 'en';
 
 export interface FileNode {

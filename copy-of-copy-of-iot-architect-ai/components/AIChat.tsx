@@ -1,14 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChatMessage, Language, ProjectData } from '../types';
+import { ChatMessage, Language, ProjectData, AIProvider } from '../types';
 import { chatWithArchitect } from '../services/geminiService';
+import { chatWithArchitectDoubao } from '../services/doubaoService';
 import { MessageCircleIcon, SendIcon, XCircleIcon, MinimizeIcon, BrainIcon } from './Icons';
 
 interface AIChatProps {
   project: ProjectData;
   language: Language;
+  aiProvider: AIProvider;
 }
 
-const AIChat: React.FC<AIChatProps> = ({ project, language }) => {
+const AIChat: React.FC<AIChatProps> = ({ project, language, aiProvider }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -37,7 +39,12 @@ const AIChat: React.FC<AIChatProps> = ({ project, language }) => {
     setLoading(true);
 
     try {
-      const responseText = await chatWithArchitect(project, messages, input, language);
+      let responseText: string;
+      if (aiProvider === AIProvider.DOUBAO) {
+        responseText = await chatWithArchitectDoubao(project, messages, input, language);
+      } else {
+        responseText = await chatWithArchitect(project, messages, input, language);
+      }
       const aiMsg: ChatMessage = { role: 'model', content: responseText };
       setMessages(prev => [...prev, aiMsg]);
     } catch (e) {
